@@ -1,0 +1,14 @@
+# data (downloaded with fetch_mnist.sh)
+data/
+# run outputs
+results_*.json
+res_*.json
+log_*.txt
+# Python
+__pycache__/
+*.pyc
+.venv/
+# LaTeX build files
+paper/*.aux
+paper/*.log
+paper/*.out

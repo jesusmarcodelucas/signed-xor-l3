@@ -1,0 +1,220 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[margin=2.5cm]{geometry}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage{xcolor}
+\usepackage{microtype}
+\usepackage[colorlinks=true,linkcolor=blue!60!black,citecolor=blue!60!black,urlcolor=blue!60!black]{hyperref}
+
+\newtheorem{proposition}{Proposition}
+\newtheorem{lemma}{Lemma}
+\theoremstyle{remark}
+\newtheorem{remark}{Remark}
+
+\newcommand{\Lt}{\text{\L}_3}
+\newcommand{\LtT}{\text{\L}_3{+}T}
+\newcommand{\clip}{\operatorname{clip}}
+\newcommand{\sgn}{\operatorname{sign}}
+\newcommand{\Z}{\mathbb{Z}}
+
+\title{A logical model of signed-XOR learning:\\[4pt]
+\large Three-valued \L ukasiewicz logic exposes the structure of a local neuronal learning rule}
+
+\author{Jes\'us Marco de Lucas\\[2pt]
+\small Instituto de F\'isica de Cantabria (IFCA), CSIC--Universidad de Cantabria, Santander, Spain\\
+\small \texttt{jesus.marco@csic.es}}
+
+\date{September 28, 2026 \\ \small Draft v6}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+A neuronal motif computing a signed exclusive-or has been proposed as a biological analogue of a loss function: it compares an external and an internal signal and drives local synaptic updates in an autoencoder. We show that the signals of this learning rule have an exact representation in three-valued \L ukasiewicz logic on $\{-1,0,1\}$ (inhibition, silence, excitation) extended with S\l upecki's constant $T$. Exhaustive search yields minimal formulas for the signed error, $(x\to f)\to(T\odot(f\to x))$, and for the signed Hebbian term, $(h\oplus e)\to(h\wedge e)$. The logical representation exposes two structural properties that are obscured in the arithmetic formulation: representing the mismatch comparator with the $\Lt$ connectives requires access to the intermediate constant $T=0$, whereas the plasticity term does not; and each online decoder update moves the potential of every erroneous output in the direction of the error, also with a ternary hidden layer. The equivalence between logical and arithmetic signals is algebraic. On MNIST, the resulting hybrid implementation with integer integration remains operational and comparable to our real-valued replica (95.7\% bit-wise accuracy over three seeds), and a variant with a ternary hidden layer performs comparably.
+\end{abstract}
+
+\section{Introduction}
+
+The signed-XOR learning motif has an exact three-valued logical representation, and this representation exposes structural properties of the rule that are hidden in its arithmetic form.
+
+In previous work we proposed that a neuronal motif computing an XOR acts as a local loss function: it compares an external signal with an internal one and emits an error only when they differ \cite{pena2024,pena2026}. A binary autoencoder trained with these signals reconstructs MNIST and organises its latent space without backpropagation. Two precisions are needed. The decoder update is local: it depends only on the pre- and postsynaptic activity and the error at that output. The encoder, instead, receives the output error through a fixed random feedback matrix (feedback alignment \cite{lillicrap2016}). Synaptic updates are therefore local, but the teaching signal for the hidden layer is not generated locally.
+
+That work is empirical: it shows \emph{that} the rule works, not \emph{why}. Here we describe the neuronal states and the signals of the rule in a three-valued logic on $\{-1,0,1\}$. \L ukasiewicz logic has previously been connected to neural networks: formulas of rational \L ukasiewicz logic correspond to networks with truncated-identity activation and rational weights \cite{amato2002}, and the correspondence extends to real weights \cite{dinola2013}. Our aim is narrower: an exact representation of the signals of one specific local learning rule on ternary states. We restrict ourselves to the subtractive pathway of inhibition, i.e.\ net ionic current of opposite sign to excitation; shunting inhibition and depolarising GABA are outside the model.
+
+We distinguish three kinds of claims throughout. \emph{Exact identities}: the $\LtT$ formulas coincide pointwise with the arithmetic signals on ternary states (Section~\ref{sec:formal}). \emph{Local theorems}: the need for $T$ when the comparator is represented with the $\Lt$ connectives, and the sign correctness of the online decoder update (Propositions~\ref{prop:T} and~\ref{prop:sign}). \emph{Empirical evidence}: MNIST experiments showing that the resulting hybrid implementation, with integer integration, remains operational and comparable to a real-valued replica (Section~\ref{sec:results}).
+
+\section{Framework}\label{sec:framework}
+
+The model is hybrid: integration is arithmetic, neuronal states are ternary, and the comparator and plasticity rule are described logically.
+
+\paragraph{Operations.} Neuronal states take values on the chain $-1<0<1$. In the shifted encoding of three-valued \L ukasiewicz logic:
+\begin{gather*}
+\neg x = -x,\qquad x\oplus y = \min(1,\,x+y+1),\qquad x\odot y = \max(-1,\,x+y-1),\\
+x\to y = \min(1,\,1-x+y),\qquad x\wedge y=\min(x,y),\qquad x\vee y = \max(x,y),\qquad T=0 .
+\end{gather*}
+$\Lt$ was axiomatised by Wajsberg \cite{wajsberg1931}. With S\l upecki's constant $T$ the algebra is primal: every function $\{-1,0,1\}^n\to\{-1,0,1\}$ is a term \cite{slupecki1936}. Without $T$, the term functions are exactly those mapping $\{\pm1\}^n$ into $\{\pm1\}$.
+
+\paragraph{Motivation for $\Lt$.} With inhibition restricted to the subtractive pathway, excitation and inhibition are the two directions of a single axis, the net membrane current, and integrating charge is addition in the ordered group $(\Z,+,\le)$. By Mundici's theorem \cite{mundici1986}, MV-algebras are intervals of abelian lattice-ordered groups with strong unit, and their operations are truncated sums; the three-element MV-algebra is the truncation of $\Z$ to three levels. $\Lt$ is therefore a natural logic for states obtained by summing charge and saturating. This is a motivation for the choice, not a claim that the whole network is an $\Lt$ formula.
+
+\paragraph{Why not Boolean logic?} A Boolean description is possible. Splitting signed quantities into positive and negative channels, the mismatch becomes $e^+=x\land\neg f$ and $e^-=\neg x\land f$, with $(e^+,e^-)=(0,0)$ for agreement and $(1,1)$ excluded. Our use of $\Lt$ is therefore not a claim of Boolean impossibility. The three-valued representation instead assigns inhibition, silence and excitation directly to $-1,0,+1$. The hidden state $h$, the error $e$ and the plasticity term $h\cdot e$ then remain single variables in the same alphabet, whereas a Boolean description needs two channels for each and an explicit construction of the signed product. We summarise the choice as follows: Boolean logic is sufficient, a three-valued logic is more natural for signed neuronal states, and $\Lt$ is particularly appropriate because its connectives are truncated arithmetic. We do not claim that $\Lt$ is the only suitable three-valued logic.
+
+\paragraph{Hybrid pipeline.} The model has three stages:
+\begin{enumerate}
+\item \emph{Integer integration.} Potentials are sums in $\Z$ with integer weights and biases, $u = xW + b$.
+\item \emph{Ternary states.} A quantiser $q_\theta:\Z\to\{-1,0,1\}$ with dead zone $\theta$ produces the neuronal states,
+\[
+q_\theta(u)=\begin{cases}1 & u>\theta,\\ 0 & |u|\le\theta,\\ -1 & u<-\theta.\end{cases}
+\]
+\item \emph{Logical description of the local rule.} The signed error at each output and the Hebbian term of each synapse are computed with $\LtT$ formulas on ternary states.
+\end{enumerate}
+The feedback signal to the encoder, $s=q(eB)$, involves an ordinary matrix product followed by quantisation; it belongs to stages 1--2, not to the logical layer.
+
+\paragraph{Scope of exactness.} The exactness we claim is precisely this: the $\LtT$ formulas of Section~\ref{sec:formal} reproduce the signed error and the signed Hebbian product pointwise on ternary states. Consequently, all else being identical, replacing the arithmetic evaluation of these two signals by the formulas leaves the learning trajectory unchanged. We do not claim that the full network, including integration and feedback, is represented by an $\LtT$ formula. On the finite ternary domain such a representation exists for any unit by primality of $\LtT$, but constructing and exploiting it is left for future work.
+
+\section{Formal results}\label{sec:formal}
+
+\paragraph{Minimal formulas.} Breadth-first exhaustive search over the basis $\{x,y,T,\neg,\oplus,\odot,\wedge,\vee,\to\}$ yields the shortest formulas, where the size of a formula is the number of nodes in its syntax tree (occurrences of variables, constants and connectives):
+\begin{align}
+e(x,f) &= \clip(x-f) = (x\to f)\to\bigl(T\odot(f\to x)\bigr), \label{eq:err}\\
+h\cdot e &= (h\oplus e)\to(h\wedge e). \label{eq:prod}
+\end{align}
+The two formulas have sizes 9 and 7. Both identities hold on all nine points of $\{-1,0,1\}^2$, checked by truth table. The signed error is $+1$ for a missing spike, $-1$ for a spurious one and $0$ on agreement. The signed product is XNOR on $\{\pm1\}$ with $0$ absorbing; it is the Hebbian plasticity term.
+
+\begin{proposition}[Constant requirement for the $\Lt$ comparator]\label{prop:T}
+Let the two inputs of the comparator be encoded so that an active input is represented by $+1$; in particular, this holds for the encodings $\{0,1\}$ (silent/active) and $\{-1,+1\}$ (inhibited/active). Then no $T$-free term of $\Lt$ computes the signed error $e$ on the encoded inputs.
+\end{proposition}
+\begin{proof}
+$\neg,\oplus,\odot,\to,\wedge,\vee$ all map $\{\pm1\}^2$ into $\{\pm1\}$; by induction, every $T$-free term maps $\{\pm1\}^n$ into $\{\pm1\}$. Under either encoding, two coinciding active inputs are the point $(1,1)\in\{\pm1\}^2$, where the comparator must output $e(1,1)=0\notin\{\pm1\}$.
+\end{proof}
+
+The proof excludes $T$-free terms of any size; the exhaustive search, which finds none up to size 11 on the full domain and up to size 9 on $\{0,1\}^2$ or $\{\pm1\}^2$, is consistent with it. The result is one of logical definability: a representation of the comparator with the connectives of $\Lt$ requires access to the intermediate reference state $T=0$. It is not a biophysical statement, since the arithmetic comparator $x-f$ yields $1-1=0$ with no constant. The product, by contrast, preserves $\{\pm1\}$ and is definable without $T$.
+
+\begin{remark}[Where the constant is needed]\label{rem:where}
+Proposition~\ref{prop:T} is the cost of coding silence as the intermediate value $0$ and producing it from coincident activity. Embedding the Boolean-style decomposition above in $\Lt$ while retaining the $\{0,1\}$ coding does not remove the constant requirement; it relocates it. The channel $e^+=x\land\neg f$, trivially constant-free in Boolean logic, must then return the intermediate value $0$ at $(1,1)$, so by the same argument it is not $T$-free definable in $\Lt$. The readout that merges two mutually exclusive channels into one signed variable, by contrast, needs no constant: $r(a,b)=a\odot(b\to a)$ gives $r(1,0)=1$, $r(0,1)=-1$ and $r(0,0)=0$. If ``off'' is instead coded as the extreme value $-1$, as in Boolean logic, the channel is $T$-free as well: $e^+=\neg(x\to f)$ on $\{\pm1\}^2$. The constant is thus required exactly where a coincidence of active inputs has to be mapped to the intermediate value.
+\end{remark}
+
+\begin{proposition}[Agreement and zero update]\label{prop:homeo}
+$e(x,f)=0$ iff $(x\leftrightarrow f)=1$, where $x\leftrightarrow f=(x\to f)\wedge(f\to x)$. The error vanishes exactly when \L ukasiewicz equivalence is full, and then the decoder rule leaves every weight unchanged.
+\end{proposition}
+
+\begin{lemma}\label{lem:square}
+For all $h,e\in\{-1,0,1\}$: $h\cdot(h\cdot e)=|h|\,e$.
+\end{lemma}
+
+\begin{proposition}[Sign correctness of the online decoder update]\label{prop:sign}
+Consider a single pattern with hidden state $h\in\{-1,0,1\}^n$ and output error $e$. Under the online decoder update $\Delta V_{ji}=\eta\,h_j e_i$, $\Delta b_i=\eta_b e_i$, with $\eta,\eta_b>0$, the change in the potential of output $i$ for that same pattern is
+\[
+\Delta u_i=\sum_j h_j\,\Delta V_{ji}+\Delta b_i=\bigl(\eta\,\lVert h\rVert_1+\eta_b\bigr)\,e_i ,
+\]
+hence $\sgn(\Delta u_i)=e_i$ for every erroneous bit.
+\end{proposition}
+\begin{proof}
+Immediate from Lemma~\ref{lem:square}, since $\sum_j h_j^2 e_i=\sum_j|h_j|\,e_i$.
+\end{proof}
+
+\begin{remark}[What Proposition~\ref{prop:sign} does not show]
+The result concerns one decoder update for the current pattern. It does not establish convergence of training: it says nothing about the effect of the update on other patterns, about the encoder, whose hidden state also changes, or about the existence of a Lyapunov function. It does show that each online decoder update is locally corrective, with a binary or a ternary hidden layer. The ternary case holds precisely because the Hebbian term is the signed product: an inhibited unit ($h_j=-1$) with positive error has its weight decreased, which increases its contribution.
+\end{remark}
+
+In batch mode an interference term between patterns appears:
+\[
+\Delta u_i^{n}=\eta\Bigl(\lVert h^{n}\rVert_1\,e_i^{n}+\sum_{m\ne n}\langle h^{n},h^{m}\rangle\,e_i^{m}\Bigr)+\eta_b\sum_m e_i^{m}.
+\]
+With binary codes the overlap $\langle h^n,h^m\rangle$ is non-negative, so opposite errors on the same bit can interfere destructively but cannot benefit from cancellation through negative overlap. With ternary codes the overlap can be negative and part of the interference can cancel.
+
+\section{Methods}\label{sec:methods}
+
+We compare three variants of the same $784\to1024\to784$ autoencoder, trained with the XOR rule and no backpropagation.
+
+\paragraph{Data.} MNIST binarised at threshold 127 (13.2\% active pixels), 60\,000 training and 10\,000 test images.
+
+\paragraph{Learning rule.} For each batch we compute the hidden layer $h$, the output $f=[hV+b_o\ge0]$ and the signed error $e\in\{-1,0,1\}$. The decoder is updated locally with $\Delta V=\eta_{\mathrm{dec}}\,h^\top e$. The encoder uses feedback alignment with a fixed random matrix $B$: $s=q(eB)$ and $\Delta W=\eta_{\mathrm{enc}}\,x^\top s$. Biases are updated with the batch sum of the error. Batch size 256, 5 epochs.
+
+The original preprint describes the error as a Boolean XOR, but its rule distinguishes overshoot from undershoot through the target bit. The effective signal is therefore the signed error $x-f$, which we use in all three variants.
+
+\begin{table}[h]
+\centering\small
+\resizebox{\textwidth}{!}{\begin{tabular}{@{}llll@{}}
+\toprule
+Variant & Hidden layer & Weights & Signals / rates \\
+\midrule
+Replica & $\{0,1\}$, $h=[u\ge0]$ & real; init $0.01\,\mathcal N(0,1)$; $B\sim\mathcal N(0,1)$ & arithmetic; $\eta_{\mathrm{dec}}{=}0.05$, $\eta_{\mathrm{enc}}{=}0.02$, $\eta_b{=}0.005$ \\
+$\Lt$ binary & $\{0,1\}$, $h=[u\ge0]$ & integer; init $\mathrm{round}(2\,\mathcal N(0,1))$; $B\in\{\pm1\}$ & $\LtT$ formulas; $\eta_{\mathrm{dec}}{=}10$, $\eta_{\mathrm{enc}}{=}4$, $\eta_b{=}1$ \\
+$\Lt$ ternary & $\{-1,0,1\}$, $h=q_\theta(u)$ & integer, as $\Lt$ binary & as $\Lt$ binary \\
+\bottomrule
+\end{tabular}}
+\caption{The three variants. In the $\Lt$ variants, $e$ and the Hebbian term are computed with Eqs.~\eqref{eq:err}--\eqref{eq:prod}; integration and feedback are integer arithmetic.}\label{tab:variants}
+\end{table}
+
+The $\Lt$ binary variant rescales the replica's weights and learning rates by a factor of about 200. Since the step activation is scale invariant, the rescaling alone would not change the dynamics; the two variants still differ in the rounding of the initialisation, in integer-valued updates and in the distribution of $B$. In the ternary variant the dead zone is $\theta=0.5\cdot\mathrm{median}(|u|)$ per pattern, a global gain control.
+
+\paragraph{Verification.} The identities of Section~\ref{sec:formal} are checked on the complete truth table. During training, every 20 batches we check that the Hebbian term computed with Eq.~\eqref{eq:prod} coincides with the arithmetic product, and we measure the fraction of erroneous bits whose potential moves in the direction of $e$.
+
+\paragraph{Evaluation.} Bit-wise accuracy, balanced accuracy and F1 on active pixels are computed on the test set with the same definitions as the evaluation script of the original work. Latent-space quality is assessed with a multiclass perceptron ($\eta=0.05$, 5 epochs) on $h$. Three seeds per variant (0, 1, 2). We do not report LPIPS.
+
+\section{Results}\label{sec:results}
+
+The three variants achieve similar reconstruction and linear-probe performance (Table~\ref{tab:results}).
+
+\begin{table}[h]
+\centering\small
+\resizebox{\textwidth}{!}{\begin{tabular}{@{}lccccc@{}}
+\toprule
+Variant & Bit-wise acc.\ (\%) & Balanced acc.\ (\%) & F1 & Linear probe (\%) & Sign-correct (batch) \\
+\midrule
+Original preprint (1 run) & 97.71 & 94.88 & 0.914 & 89.8 & -- \\
+Replica & $95.72\pm0.10$ & $90.59\pm1.03$ & $0.840\pm0.007$ & $90.6\pm1.2$ & $0.921\pm0.001$ \\
+$\Lt$ binary & $95.68\pm0.38$ & $90.55\pm1.28$ & $0.838\pm0.016$ & $90.9\pm0.5$ & $0.922\pm0.002$ \\
+$\Lt$ ternary & $95.70\pm0.23$ & $91.24\pm0.48$ & $0.842\pm0.007$ & $89.3\pm2.2$ & $0.926\pm0.002$ \\
+\bottomrule
+\end{tabular}}
+\caption{MNIST test set after 5 epochs; mean $\pm$ standard deviation over three seeds. Before training, bit-wise accuracy is 49\% in all variants.}\label{tab:results}
+\end{table}
+
+Learning curves are also similar: mean bit-wise accuracy goes from 91--92\% after the first epoch to 95.7\% after the fifth in all three variants. Our replica is about two points below the published value of the original work. Only its evaluation script was available to us, not its training code, so we attribute the gap to training details not described in the text. The equivalence between logical and arithmetic signals does not depend on these experiments: it follows from the pointwise identities of Section~\ref{sec:formal}. The $\Lt$ variants also differ from the replica in other respects (integer weights, initialisation, scale of the learning rates and $B\in\{\pm1\}$ instead of $B\sim\mathcal N(0,1)$). What MNIST shows is that the resulting integer, hybrid implementation remains operational and comparable to the real-valued replica.
+
+\paragraph{Ternary hidden layer.} The ternary variant uses the three values in balanced proportions: 36.8\% inhibited, 26.2\% silent and 37.0\% excited units. Its reconstruction is comparable to that of the binary variants. The linear probe is slightly lower and more variable ($89.3\pm2.2\%$), possibly because a linear perceptron does not exploit the symmetry of signed codes.
+
+\paragraph{Verification of Proposition~\ref{prop:sign}.} In online mode (batch size 1, 400 steps per variant), 100\% of erroneous bits move their potential in the direction of $e$, for both binary and ternary hidden layers, as the proposition requires. With batch size 256 the fraction drops to 92\% due to interference between patterns. The ternary variant shows slightly less interference (0.926 versus 0.921--0.922, standard deviations 0.001--0.002), consistent with the possibility of negative inner products. We treat this as an indication, not a result: the effect is small and rests on three seeds and one batch size.
+
+In every verified batch, the Hebbian term computed with $(h\oplus e)\to(h\wedge e)$ coincided exactly with the arithmetic product.
+
+\section{Discussion}
+
+The contribution of this work is formal: the signed-XOR rule admits an exact logical representation of its signals, and that representation makes two structural properties explicit.
+
+The first concerns the comparator (Proposition~\ref{prop:T}). The logical representation of the signed error requires access to the intermediate reference state $T=0$, whereas the plasticity term does not. Remark~\ref{rem:where} locates this requirement at the stage where coincident activity must be mapped to silence. The six-neuron motif of \cite{pena2024,pena2026} has exactly this structure if its inhibitory neuron responds only to coincident inputs. In that case the auxiliary neurons $E_1$ and $E_2$ compute the two channels $x\land\neg f$ and $f\land\neg x$, and the output merges them. On this reading, the reference state $T=0$ would correspond to the coincidence detection performed by the inhibitory neuron and its threshold, not to the final readout, which is $T$-free. This is a testable circuit-level hypothesis; addressing it requires writing the motif itself as an $\LtT$ formula.
+
+The second is the \emph{sign correctness} of the online decoder update (Proposition~\ref{prop:sign}): each update is locally corrective for the current pattern. The identity $h\cdot(h\cdot e)=|h|\,e$ keeps this true when the hidden layer contains actively inhibited units. This explains why the individual update points in the right direction; it is not a convergence proof.
+
+The MNIST experiments play a supporting role. The equivalence of logical and arithmetic signals is algebraic; the experiments show that the resulting hybrid implementation with integer integration remains operational and comparable to a real-valued replica, and that a ternary hidden layer is viable. They are not the main evidence of the paper, and MNIST reconstruction is not a demanding benchmark.
+
+\paragraph{Limitations.}
+\begin{itemize}
+\item The model is hybrid. Integration and the feedback path to the encoder are arithmetic; only states and local signals are logical.
+\item The encoder's teaching signal is transported through a fixed random matrix. The synaptic updates are local, but the generation of the hidden-layer error signal is not.
+\item Proposition~\ref{prop:sign} is a statement about one online decoder update. We have no convergence result for training, for batch updates or for the encoder.
+\item Sub-threshold accumulation across steps and continuous time are outside the model. Shunting inhibition and depolarising GABA are excluded.
+\item We evaluated only MNIST; EMNIST, LPIPS and the iterative correction cycles of the original work remain to be done. Our replica falls below the published figures.
+\end{itemize}
+
+\paragraph{Future work.} Write the six-neuron motif as an $\LtT$ formula and test whether its inhibitory coincidence stage realises the reference state $T=0$. Derive bounds for the batch interference term and, from them, conditions for convergence. Use SAT/SMT to decide equivalences between circuits, given that validity in $\Lt$ is coNP-complete.
+
+\paragraph{Code availability.} The code ($\LtT$ algebra, formula search and the three autoencoder variants) is provided as \texttt{l3.py}, \texttt{ae.py} and \texttt{seeds.py}.
+
+\paragraph{Acknowledgements.} This work was supported by the ENGRAMMER project (ref.~IASOMM\-2024\-007), funded by EU Next Generation under the Recovery and Resilience Facility (RRF). The formal search, the experiments and a first draft of this manuscript were produced with the assistance of Claude (Anthropic).
+
+\begin{thebibliography}{99}
+\bibitem{amato2002} P.~Amato, A.~Di Nola, B.~Gerla. Neural networks and rational \L ukasiewicz logic. In \emph{Proc.\ 2002 Annual Meeting of the North American Fuzzy Information Processing Society (NAFIPS)}, IEEE, pp.~506--510, 2002.
+\bibitem{dinola2013} A.~Di Nola, B.~Gerla, I.~Leu\c{s}tean. Adding real coefficients to \L ukasiewicz logic: an application to neural networks. In \emph{Fuzzy Logic and Applications (WILF 2013)}, LNCS 8256, Springer, pp.~77--85, 2013. doi:10.1007/978-3-319-03200-9\_9.
+\bibitem{lillicrap2016} T.~P.~Lillicrap, D.~Cownden, D.~B.~Tweed, C.~J.~Akerman. Random synaptic feedback weights support error backpropagation for deep learning. \emph{Nature Communications} 7:13276, 2016.
+\bibitem{mundici1986} D.~Mundici. Interpretation of AF C$^*$-algebras in \L ukasiewicz sentential calculus. \emph{Journal of Functional Analysis} 65:15--63, 1986.
+\bibitem{pena2024} M.~Pe\~na, J.~Marco, L.~Lloret. Implementing engrams from a machine learning perspective: XOR as a basic motif. arXiv:2406.09940, 2024.
+\bibitem{pena2026} M.~Pe\~na Fern\'andez, L.~Lloret Iglesias, J.~Marco de Lucas. Toward defining loss functions in neuroscience: an XOR-based neuronal mechanism. bioRxiv, doi:10.64898/2026.03.16.712061, 2026.
+\bibitem{slupecki1936} J.~S\l upecki. Der volle dreiwertige Aussagenkalk\"ul. \emph{Comptes Rendus des S\'eances de la Soci\'et\'e des Sciences et des Lettres de Varsovie, Classe III} 29:9--11, 1936.
+\bibitem{wajsberg1931} M.~Wajsberg. Aksjomatyzacja tr\'ojwarto\'sciowego rachunku zda\'n. \emph{Comptes Rendus des S\'eances de la Soci\'et\'e des Sciences et des Lettres de Varsovie, Classe III} 24:126--148, 1931.
+\end{thebibliography}
+
+\end{document}
